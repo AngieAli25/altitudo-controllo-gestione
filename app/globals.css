@@ -1,26 +1,120 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@font-face {
+  font-family: 'ITC Blair';
+  src: url('/font/ITC-Blair/WOFF2/ITC Blair Medium.woff2') format('woff2'),
+       url('/font/ITC-Blair/TTF/ITC Blair Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'ITC Blair Light';
+  src: url('/font/ITC-Blair/WOFF2/ITC Blair Light.woff2') format('woff2'),
+       url('/font/ITC-Blair/TTF/ITC Blair Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Aeonik';
+  src: url('/font/Aeonik/fonts/fonnts.com-Aeonik-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Aeonik Bold';
+  src: url('/font/Aeonik/fonts/fonnts.com-Aeonik-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root, [data-theme="dark"] {
+  --font-itc-blair: 'ITC Blair', 'Inter', sans-serif;
+  --font-itc-blair-light: 'ITC Blair Light', 'Inter', sans-serif;
+  --font-aeonik: 'Aeonik', 'Inter', sans-serif;
+  --font-aeonik-bold: 'Aeonik Bold', 'Inter', sans-serif;
+
+  --bg: #000000;
+  --bg-surface: rgba(255,255,255,0.06);
+  --bg-surface-hover: rgba(255,255,255,0.03);
+  --bg-input: rgba(255,255,255,0.07);
+  --border-default: rgba(255,255,255,0.15);
+  --border-input: rgba(255,255,255,0.20);
+  --border-subtle: rgba(255,255,255,0.10);
+  --border-muted: rgba(255,255,255,0.06);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255,255,255,0.60);
+  --text-muted: rgba(255,255,255,0.40);
+  --text-placeholder: rgba(255,255,255,0.30);
+  --btn-primary-bg: #ffffff;
+  --btn-primary-text: #000000;
+  --btn-primary-hover: rgba(255,255,255,0.90);
+  --btn-secondary-border: rgba(255,255,255,0.25);
+  --select-option-bg: #0a0a0a;
+  --sidebar-bg: #000000;
+  --tooltip-bg: rgba(0,0,0,0.85);
+  --scrollbar-thumb: rgba(255,255,255,0.2);
+
+  --guidaevai-accent: rgba(255,160,50,0.15);
+  --reddoak-accent: rgba(255,60,60,0.15);
+}
+
+[data-theme="light"] {
+  --bg: #f5f5f5;
+  --bg-surface: rgba(0,0,0,0.03);
+  --bg-surface-hover: rgba(0,0,0,0.05);
+  --bg-input: rgba(0,0,0,0.04);
+  --border-default: rgba(0,0,0,0.12);
+  --border-input: rgba(0,0,0,0.15);
+  --border-subtle: rgba(0,0,0,0.08);
+  --border-muted: rgba(0,0,0,0.05);
+  --text-primary: #111111;
+  --text-secondary: rgba(0,0,0,0.60);
+  --text-muted: rgba(0,0,0,0.40);
+  --text-placeholder: rgba(0,0,0,0.35);
+  --btn-primary-bg: #111111;
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: #333333;
+  --btn-secondary-border: rgba(0,0,0,0.20);
+  --select-option-bg: #ffffff;
+  --sidebar-bg: #ffffff;
+  --tooltip-bg: rgba(255,255,255,0.95);
+  --scrollbar-thumb: rgba(0,0,0,0.2);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--bg-surface);
+  --color-border-subtle: var(--border-default);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent-hover: var(--bg-surface-hover);
+  --color-input-bg: var(--bg-input);
+  --color-input-border: var(--border-input);
+  --color-guidaevai: rgba(255,160,50,0.15);
+  --color-reddoak: rgba(255,60,60,0.15);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-aeonik);
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-itc-blair);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
 }
