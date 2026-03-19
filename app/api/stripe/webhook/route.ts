@@ -68,22 +68,25 @@ export async function POST(request: NextRequest) {
           ? paymentIntent.customer
           : null;
 
-        // Insert as revenue entry
-        // NOTE: user_id and company_id are left null because this comes from Stripe,
-        // not from a logged-in user. An admin should assign company later if needed.
-        // We use the first admin user as fallback for user_id (required by RLS).
+        // Assign to admin user and Guidaevai company (Stripe account is Guidaevai)
         const { data: adminProfile } = await supabase
           .from('profiles')
-          .select('id, company_id')
+          .select('id')
           .eq('role', 'admin')
           .limit(1)
           .single();
 
-        if (adminProfile) {
+        const { data: guidaevai } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('name', 'Guidaevai')
+          .single();
+
+        if (adminProfile && guidaevai) {
           await supabase.from('revenue_entries').insert({
             user_id: adminProfile.id,
-            company_id: adminProfile.company_id,
-            date: new Date().toISOString().split('T')[0],
+            company_id: guidaevai.id,
+            date: new Date(paymentIntent.created * 1000).toISOString().split('T')[0],
             amount,
             description,
             source: 'stripe',
@@ -120,18 +123,26 @@ export async function POST(request: NextRequest) {
           ? invoice.customer
           : null;
 
-        const { data: adminProfile } = await supabase
+        const { data: adminProfile2 } = await supabase
           .from('profiles')
-          .select('id, company_id')
+          .select('id')
           .eq('role', 'admin')
           .limit(1)
           .single();
 
-        if (adminProfile) {
+        const { data: guidaevai2 } = await supabase
+          .from('companies')
+          .select('id')
+          .eq('name', 'Guidaevai')
+          .single();
+
+        if (adminProfile2 && guidaevai2) {
           await supabase.from('revenue_entries').insert({
-            user_id: adminProfile.id,
-            company_id: adminProfile.company_id,
-            date: new Date().toISOString().split('T')[0],
+            user_id: adminProfile2.id,
+            company_id: guidaevai2.id,
+            date: invoice.status_transitions?.paid_at
+              ? new Date(invoice.status_transitions.paid_at * 1000).toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0],
             amount,
             description,
             source: 'stripe',
