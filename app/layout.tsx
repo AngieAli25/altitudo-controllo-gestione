@@ -5,6 +5,10 @@ import ThemeProvider from "@/components/ThemeProvider";
 export const metadata: Metadata = {
   title: "Altitudo Tracker",
   description: "Tracciamento costi e ore lavorate - Progetto Altitudo",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
