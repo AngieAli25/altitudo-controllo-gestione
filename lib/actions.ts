@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation';
 
 // ---- AUTH ----
 
-export async function loginAction(formData: FormData) {
+export async function loginAction(_prevState: { error?: string } | null, formData: FormData) {
   const supabase = await createClient();
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
@@ -31,7 +31,7 @@ export async function logoutAction() {
 
 // ---- WORK ENTRIES ----
 
-export async function createWorkEntry(formData: FormData) {
+export async function createWorkEntry(_prevState: { error?: string } | null, formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Non autenticato' };
@@ -102,7 +102,7 @@ export async function createWorkEntry(formData: FormData) {
 
 // ---- EXPENSE ENTRIES ----
 
-export async function createExpenseEntry(formData: FormData) {
+export async function createExpenseEntry(_prevState: { error?: string } | null, formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Non autenticato' };
@@ -237,10 +237,17 @@ export async function updateExpenseEntry(formData: FormData) {
     }
   }
 
-  const { error } = await supabase
+  let updateQuery = supabase
     .from('expense_entries')
     .update(updateData)
     .eq('id', id);
+
+  // Non-admin can only update their own entries
+  if (profile.role !== 'admin') {
+    updateQuery = updateQuery.eq('user_id', user.id);
+  }
+
+  const { error } = await updateQuery;
 
   if (error) return { error: error.message };
 
@@ -254,12 +261,27 @@ export async function deleteExpenseEntry(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Non autenticato' };
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) return { error: 'Profilo non trovato' };
+
   const id = formData.get('id') as string;
 
-  const { error } = await supabase
+  let deleteQuery = supabase
     .from('expense_entries')
     .delete()
     .eq('id', id);
+
+  // Non-admin can only delete their own entries
+  if (profile.role !== 'admin') {
+    deleteQuery = deleteQuery.eq('user_id', user.id);
+  }
+
+  const { error } = await deleteQuery;
 
   if (error) return { error: error.message };
 
@@ -270,7 +292,7 @@ export async function deleteExpenseEntry(formData: FormData) {
 
 // ---- ADMIN: CREATE USER ----
 
-export async function createUserAction(formData: FormData) {
+export async function createUserAction(_prevState: { error?: string } | null, formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Non autenticato' };
@@ -369,7 +391,7 @@ export async function updateUserAction(formData: FormData) {
 
 // ---- REVENUE ENTRIES (INCASSI) ----
 
-export async function createRevenueEntry(formData: FormData) {
+export async function createRevenueEntry(_prevState: { error?: string } | null, formData: FormData) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Non autenticato' };

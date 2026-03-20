@@ -17,13 +17,7 @@ export default function WorkEntryForm({ hourlyRate, isAdmin, users, companies, c
   const [hours, setHours] = useState<number>(0);
   const [selectedCompanyId, setSelectedCompanyId] = useState(currentCompanyId);
   const [activeHourlyRate, setActiveHourlyRate] = useState(hourlyRate);
-  const [state, formAction, pending] = useActionState(
-    async (_prev: { error?: string } | null, formData: FormData) => {
-      const result = await createWorkEntry(formData);
-      return result ?? null;
-    },
-    null
-  );
+  const [state, formAction, pending] = useActionState(createWorkEntry, null);
 
   const handleUserChange = useCallback((userId: string) => {
     const selectedUser = users.find((u) => u.id === userId);

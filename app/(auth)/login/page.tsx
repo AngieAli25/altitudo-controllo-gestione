@@ -4,14 +4,8 @@ import { useActionState } from 'react';
 import Image from 'next/image';
 import { loginAction } from '@/lib/actions';
 
-type LoginState = { error?: string } | null;
-
-async function loginWithState(_prevState: LoginState, formData: FormData): Promise<LoginState> {
-  return loginAction(formData);
-}
-
 export default function LoginPage() {
-  const [state, formAction, isPending] = useActionState<LoginState, FormData>(loginWithState, null);
+  const [state, formAction, isPending] = useActionState(loginAction, null);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">

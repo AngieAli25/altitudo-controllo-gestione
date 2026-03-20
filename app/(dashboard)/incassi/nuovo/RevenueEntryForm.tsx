@@ -29,13 +29,7 @@ interface Props {
 export default function RevenueEntryForm({ isAdmin, users, companies, currentUserId, currentCompanyId }: Props) {
   const [source, setSource] = useState('');
   const [selectedCompanyId, setSelectedCompanyId] = useState(currentCompanyId);
-  const [state, formAction, pending] = useActionState(
-    async (_prev: { error?: string } | null, formData: FormData) => {
-      const result = await createRevenueEntry(formData);
-      return result ?? null;
-    },
-    null
-  );
+  const [state, formAction, pending] = useActionState(createRevenueEntry, null);
 
   const inputClass =
     'w-full rounded-xl border border-[var(--border-input)] bg-[var(--bg-input)] px-4 py-3 text-[var(--text-primary)] outline-none focus:border-[rgba(255,255,255,0.40)]';

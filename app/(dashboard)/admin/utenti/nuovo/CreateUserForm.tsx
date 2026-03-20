@@ -8,13 +8,7 @@ interface CreateUserFormProps {
 }
 
 export default function CreateUserForm({ companies }: CreateUserFormProps) {
-  const [state, formAction, isPending] = useActionState(
-    async (_prev: { error?: string } | null, formData: FormData) => {
-      const result = await createUserAction(formData);
-      return result ?? null;
-    },
-    null
-  );
+  const [state, formAction, isPending] = useActionState(createUserAction, null);
 
   return (
     <form action={formAction} className="space-y-6 max-w-lg">

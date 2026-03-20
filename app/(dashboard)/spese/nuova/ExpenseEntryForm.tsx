@@ -21,13 +21,7 @@ interface Props {
 
 export default function ExpenseEntryForm({ isAdmin, users, companies, currentUserId, currentCompanyId }: Props) {
   const [selectedCompanyId, setSelectedCompanyId] = useState(currentCompanyId);
-  const [state, formAction, pending] = useActionState(
-    async (_prev: { error?: string } | null, formData: FormData) => {
-      const result = await createExpenseEntry(formData);
-      return result ?? null;
-    },
-    null
-  );
+  const [state, formAction, pending] = useActionState(createExpenseEntry, null);
 
   const handleUserChange = useCallback((userId: string) => {
     const selectedUser = users.find((u) => u.id === userId);
