@@ -100,6 +100,114 @@ export async function createWorkEntry(_prevState: { error?: string } | null, for
   redirect('/ore');
 }
 
+export async function updateWorkEntry(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Non autenticato' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) return { error: 'Profilo non trovato' };
+
+  const id = formData.get('id') as string;
+  const date = formData.get('date') as string;
+  const hours = parseFloat(formData.get('hours') as string);
+  const description = formData.get('description') as string;
+  const notes = formData.get('notes') as string || null;
+  const assigned_user_id = formData.get('assigned_user_id') as string || null;
+  const formCompanyId = formData.get('company_id') as string || null;
+
+  if (!id || !date || !hours || !description) {
+    return { error: 'Data, ore e descrizione sono obbligatori' };
+  }
+
+  if (hours <= 0 || hours > 24) {
+    return { error: 'Le ore devono essere tra 0 e 24' };
+  }
+
+  const updateData: Record<string, unknown> = {
+    date,
+    hours,
+    description,
+    notes,
+  };
+
+  if (profile.role === 'admin') {
+    if (assigned_user_id) {
+      updateData.user_id = assigned_user_id;
+      // Update hourly_rate based on assigned user
+      const { data: assignedProfile } = await supabase
+        .from('profiles')
+        .select('company_id, hourly_rate')
+        .eq('id', assigned_user_id)
+        .single();
+      if (assignedProfile) {
+        updateData.hourly_rate = assignedProfile.hourly_rate;
+        if (!formCompanyId) {
+          updateData.company_id = assignedProfile.company_id;
+        }
+      }
+    }
+    if (formCompanyId) {
+      updateData.company_id = formCompanyId;
+    }
+  }
+
+  let updateQuery = supabase
+    .from('work_entries')
+    .update(updateData)
+    .eq('id', id);
+
+  if (profile.role !== 'admin') {
+    updateQuery = updateQuery.eq('user_id', user.id);
+  }
+
+  const { error } = await updateQuery;
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/ore');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+export async function deleteWorkEntry(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Non autenticato' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) return { error: 'Profilo non trovato' };
+
+  const id = formData.get('id') as string;
+
+  let deleteQuery = supabase
+    .from('work_entries')
+    .delete()
+    .eq('id', id);
+
+  if (profile.role !== 'admin') {
+    deleteQuery = deleteQuery.eq('user_id', user.id);
+  }
+
+  const { error } = await deleteQuery;
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/ore');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
 // ---- EXPENSE ENTRIES ----
 
 export async function createExpenseEntry(_prevState: { error?: string } | null, formData: FormData) {
@@ -469,6 +577,120 @@ export async function createRevenueEntry(_prevState: { error?: string } | null, 
   revalidatePath('/incassi');
   revalidatePath('/dashboard');
   redirect('/incassi');
+}
+
+export async function updateRevenueEntry(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Non autenticato' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) return { error: 'Profilo non trovato' };
+
+  const id = formData.get('id') as string;
+  const date = formData.get('date') as string;
+  const amount = parseFloat(formData.get('amount') as string);
+  const description = formData.get('description') as string;
+  const source = formData.get('source') as string;
+  const client_name = formData.get('client_name') as string || null;
+  const invoice_number = formData.get('invoice_number') as string || null;
+  const status = formData.get('status') as string || 'confirmed';
+  const notes = formData.get('notes') as string || null;
+  const assigned_user_id = formData.get('assigned_user_id') as string || null;
+  const formCompanyId = formData.get('company_id') as string || null;
+
+  if (!id || !date || !amount || !description || !source) {
+    return { error: 'Data, importo, descrizione e fonte sono obbligatori' };
+  }
+
+  if (amount <= 0) {
+    return { error: "L'importo deve essere positivo" };
+  }
+
+  const updateData: Record<string, unknown> = {
+    date,
+    amount,
+    description,
+    source,
+    client_name,
+    invoice_number,
+    status,
+    notes,
+  };
+
+  if (profile.role === 'admin') {
+    if (assigned_user_id) {
+      updateData.user_id = assigned_user_id;
+      if (!formCompanyId) {
+        const { data: assignedProfile } = await supabase
+          .from('profiles')
+          .select('company_id')
+          .eq('id', assigned_user_id)
+          .single();
+        if (assignedProfile) {
+          updateData.company_id = assignedProfile.company_id;
+        }
+      }
+    }
+    if (formCompanyId) {
+      updateData.company_id = formCompanyId;
+    }
+  }
+
+  let updateQuery = supabase
+    .from('revenue_entries')
+    .update(updateData)
+    .eq('id', id);
+
+  if (profile.role !== 'admin') {
+    updateQuery = updateQuery.eq('user_id', user.id);
+  }
+
+  const { error } = await updateQuery;
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/incassi');
+  revalidatePath('/dashboard');
+  return { success: true };
+}
+
+export async function deleteRevenueEntry(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: 'Non autenticato' };
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile) return { error: 'Profilo non trovato' };
+
+  const id = formData.get('id') as string;
+
+  let deleteQuery = supabase
+    .from('revenue_entries')
+    .delete()
+    .eq('id', id);
+
+  if (profile.role !== 'admin') {
+    deleteQuery = deleteQuery.eq('user_id', user.id);
+  }
+
+  const { error } = await deleteQuery;
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/incassi');
+  revalidatePath('/dashboard');
+  return { success: true };
 }
 
 export async function disableUserAction(formData: FormData) {

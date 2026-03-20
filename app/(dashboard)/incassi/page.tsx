@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth';
-import { formatDate, formatDateTime, formatCurrency, getMonthOptions } from '@/lib/utils';
+import { formatCurrency, getMonthOptions } from '@/lib/utils';
 import IncassiFilters from './IncassiFilters';
+import RevenueRow from './RevenueRow';
 
 export default async function IncassiPage({
   searchParams,
@@ -44,12 +45,15 @@ export default async function IncassiPage({
 
   const { data: entries } = await dbQuery;
 
-  // Get users list for admin filter
-  let users: { id: string; full_name: string }[] = [];
+  // Get companies (for all users) and users (admin only)
+  const { data: companiesData } = await supabase.from('companies').select('id, name').order('name');
+  const companies = companiesData ?? [];
+
+  let users: { id: string; full_name: string; company_id: string }[] = [];
   if (isAdmin) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, full_name')
+      .select('id, full_name, company_id')
       .order('full_name');
     users = data ?? [];
   }
@@ -57,19 +61,6 @@ export default async function IncassiPage({
   const months = getMonthOptions();
 
   const totalAmount = (entries ?? []).reduce((sum, e) => sum + e.amount, 0);
-
-  const sourceLabels: Record<string, string> = {
-    stripe: 'Stripe',
-    bonifico: 'Bonifico',
-    contanti: 'Contanti',
-    altro: 'Altro',
-  };
-
-  const statusConfig: Record<string, { label: string; className: string }> = {
-    pending: { label: 'In attesa', className: 'bg-yellow-500/20 text-yellow-300' },
-    confirmed: { label: 'Confermato', className: 'bg-green-500/20 text-green-300' },
-    cancelled: { label: 'Annullato', className: 'bg-red-500/20 text-red-300' },
-  };
 
   return (
     <div className="space-y-6">
@@ -106,43 +97,26 @@ export default async function IncassiPage({
                 <th className="px-4 py-3 font-medium text-[var(--text-muted)]">Stato</th>
                 <th className="px-4 py-3 font-medium text-[var(--text-muted)]">Descrizione</th>
                 <th className="px-4 py-3 font-medium text-[var(--text-muted)]">Inserito il</th>
+                <th className="px-4 py-3 font-medium text-[var(--text-muted)]">Azioni</th>
               </tr>
             </thead>
             <tbody>
               {(entries ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-[var(--text-muted)]">
+                  <td colSpan={10} className="px-4 py-8 text-center text-[var(--text-muted)]">
                     Nessun incasso trovato
                   </td>
                 </tr>
               ) : (
                 (entries ?? []).map((entry) => (
-                  <tr
+                  <RevenueRow
                     key={entry.id}
-                    className="border-b border-[var(--border-muted)] hover:bg-[rgba(255,255,255,0.03)]"
-                  >
-                    <td className="px-4 py-3 text-[var(--text-primary)]">{formatDate(entry.date)}</td>
-                    <td className="px-4 py-3 text-[var(--text-primary)]">{entry.profiles?.full_name ?? '\u2014'}</td>
-                    <td className="px-4 py-3 text-[var(--text-primary)]">{entry.client_name ?? '\u2014'}</td>
-                    <td className="px-4 py-3 text-[var(--text-primary)] text-right">{formatCurrency(entry.amount)}</td>
-                    <td className="px-4 py-3 text-[var(--text-primary)]">
-                      {sourceLabels[entry.source] ?? entry.source}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">{entry.invoice_number ?? '\u2014'}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                          statusConfig[entry.status]?.className ?? ''
-                        }`}
-                      >
-                        {statusConfig[entry.status]?.label ?? entry.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--text-primary)] max-w-xs truncate">{entry.description}</td>
-                    <td className="px-4 py-3 text-[var(--text-secondary)]">
-                      {formatDateTime(entry.created_at)}
-                    </td>
-                  </tr>
+                    entry={entry}
+                    isAdmin={isAdmin}
+                    canEdit={isAdmin || entry.user_id === profile.id}
+                    users={users}
+                    companies={companies}
+                  />
                 ))
               )}
             </tbody>
@@ -155,6 +129,7 @@ export default async function IncassiPage({
                   <td className="px-4 py-3 font-semibold text-[var(--text-primary)] text-right">
                     {formatCurrency(totalAmount)}
                   </td>
+                  <td className="px-4 py-3" />
                   <td className="px-4 py-3" />
                   <td className="px-4 py-3" />
                   <td className="px-4 py-3" />
