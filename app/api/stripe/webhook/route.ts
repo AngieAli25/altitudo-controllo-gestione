@@ -63,10 +63,39 @@ export async function POST(request: NextRequest) {
         }
 
         const amount = paymentIntent.amount / 100; // Convert from cents to EUR
-        const description = paymentIntent.description || `Pagamento Stripe ${paymentIntent.id}`;
-        const customerName = typeof paymentIntent.customer === 'string'
+
+        // Fetch charge to get billing_details (name, email)
+        let clientName: string | null = null;
+        let clientEmail: string | null = null;
+        const customerId = typeof paymentIntent.customer === 'string'
           ? paymentIntent.customer
           : null;
+
+        if (typeof paymentIntent.latest_charge === 'string') {
+          try {
+            const charge = await stripe.charges.retrieve(paymentIntent.latest_charge);
+            clientName = charge.billing_details?.name ?? null;
+            clientEmail = charge.billing_details?.email ?? null;
+          } catch {
+            // If charge fetch fails, continue without billing details
+          }
+        }
+
+        // If no billing details from charge, try customer object
+        if (!clientName && customerId) {
+          try {
+            const customer = await stripe.customers.retrieve(customerId);
+            if (!customer.deleted) {
+              clientName = customer.name ?? null;
+              clientEmail = clientEmail ?? customer.email ?? null;
+            }
+          } catch {
+            // Continue without customer details
+          }
+        }
+
+        const description = paymentIntent.description
+          || `Pagamento Stripe${clientName ? ` - ${clientName}` : ''} ${paymentIntent.id}`;
 
         // Assign to admin user and Guidaevai company (Stripe account is Guidaevai)
         const { data: adminProfile } = await supabase
@@ -91,9 +120,12 @@ export async function POST(request: NextRequest) {
             description,
             source: 'stripe',
             stripe_payment_id: paymentIntent.id,
-            stripe_customer_id: customerName,
+            stripe_customer_id: customerId,
+            client_name: clientName,
             status: 'confirmed',
-            notes: `Webhook automatico - Event: ${event.id}`,
+            notes: clientEmail
+              ? `Email: ${clientEmail} — Webhook automatico - Event: ${event.id}`
+              : `Webhook automatico - Event: ${event.id}`,
           });
         }
 
@@ -115,13 +147,16 @@ export async function POST(request: NextRequest) {
         }
 
         const amount = (invoice.amount_paid ?? 0) / 100;
-        const description = `Fattura Stripe ${invoice.number || invoice.id}`;
         const customerName = typeof invoice.customer_name === 'string'
           ? invoice.customer_name
+          : null;
+        const customerEmail = typeof invoice.customer_email === 'string'
+          ? invoice.customer_email
           : null;
         const customerId = typeof invoice.customer === 'string'
           ? invoice.customer
           : null;
+        const description = `Fattura Stripe ${invoice.number || invoice.id}${customerName ? ` - ${customerName}` : ''}`;
 
         const { data: adminProfile2 } = await supabase
           .from('profiles')
@@ -151,7 +186,9 @@ export async function POST(request: NextRequest) {
             client_name: customerName,
             invoice_number: invoice.number ?? null,
             status: 'confirmed',
-            notes: `Webhook automatico - Event: ${event.id}`,
+            notes: customerEmail
+              ? `Email: ${customerEmail} — Webhook automatico - Event: ${event.id}`
+              : `Webhook automatico - Event: ${event.id}`,
           });
         }
 
