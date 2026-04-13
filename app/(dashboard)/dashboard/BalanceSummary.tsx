@@ -19,86 +19,77 @@ export default function BalanceSummary({
   risultatoPerAzienda,
   saldo,
 }: BalanceSummaryProps) {
-  const chiDeveAChi =
-    saldo > 0
-      ? `Guidaevai deve ${formatCurrency(saldo)} a Reddoak`
-      : saldo < 0
-      ? `Reddoak deve ${formatCurrency(Math.abs(saldo))} a Guidaevai`
-      : 'Le aziende sono in pari';
+  const chiDeve = saldo > 0 ? 'Guidaevai' : 'Reddoak';
+  const aChiDeve = saldo > 0 ? 'Reddoak' : 'Guidaevai';
+  const importo = Math.abs(saldo);
+  const inPari = Math.abs(saldo) < 0.01;
 
   return (
-    <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6 space-y-5">
-      <h3 className="text-[var(--text-primary)] text-lg font-semibold">
-        Progetto Altitudo
-      </h3>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
-            Guidaevai ha speso
-          </p>
-          <p className="text-xl font-semibold text-[rgba(255,180,80,0.90)]">
-            {formatCurrency(costoGuidaevai)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
-            Reddoak ha speso
-          </p>
-          <p className="text-xl font-semibold text-[rgba(255,100,100,0.90)]">
-            {formatCurrency(costoReddoak)}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
-            Progetto ha incassato
-          </p>
-          <p className="text-xl font-semibold text-[var(--text-primary)]">
-            {formatCurrency(incassiTotali)}
-          </p>
-        </div>
-      </div>
-
-      <div className="border-t border-[var(--border-subtle)] pt-4 grid grid-cols-2 gap-4">
-        <div>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
-            Risultato
-          </p>
-          <p
-            className={`text-xl font-semibold ${
-              risultatoProgetto >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}
-          >
-            {formatCurrency(risultatoProgetto)}
-            <span className="text-sm font-normal text-[var(--text-muted)] ml-2">
-              {risultatoProgetto >= 0 ? '(profitto)' : '(perdita)'}
-            </span>
-          </p>
-        </div>
-        <div>
-          <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
-            Per azienda
-          </p>
-          <p
-            className={`text-xl font-semibold ${
-              risultatoPerAzienda >= 0 ? 'text-green-400' : 'text-red-400'
-            }`}
-          >
-            {formatCurrency(risultatoPerAzienda)}
-            <span className="text-sm font-normal text-[var(--text-muted)] ml-2">
-              ciascuna
-            </span>
-          </p>
-        </div>
-      </div>
-
-      <div className="border-t border-[var(--border-subtle)] pt-4">
-        <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-2">
+    <div className="space-y-6">
+      {/* Card hero: CHI DEVE A CHI */}
+      <div className="bg-[var(--bg-surface)] border-2 border-[var(--border-default)] rounded-2xl p-8 text-center">
+        <p className="text-xs text-[var(--text-muted)] uppercase tracking-widest mb-3">
           Chi deve a chi
         </p>
-        <p className="text-lg font-bold text-[var(--text-primary)]">
-          {chiDeveAChi}
-        </p>
+        {inPari ? (
+          <p className="text-2xl font-bold text-green-400">
+            Le aziende sono in pari
+          </p>
+        ) : (
+          <p className="text-2xl font-bold text-[var(--text-primary)]">
+            {chiDeve} deve{' '}
+            <span className={saldo > 0 ? 'text-[rgba(255,180,80,0.90)]' : 'text-[rgba(255,100,100,0.90)]'}>
+              {formatCurrency(importo)}
+            </span>
+            {' '}a {aChiDeve}
+          </p>
+        )}
+      </div>
+
+      {/* Dettaglio numeri */}
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+          <div>
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              Guidaevai ha speso
+            </p>
+            <p className="text-xl font-semibold text-[rgba(255,180,80,0.90)]">
+              {formatCurrency(costoGuidaevai)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              Reddoak ha speso
+            </p>
+            <p className="text-xl font-semibold text-[rgba(255,100,100,0.90)]">
+              {formatCurrency(costoReddoak)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              Progetto ha incassato
+            </p>
+            <p className="text-xl font-semibold text-[var(--text-primary)]">
+              {formatCurrency(incassiTotali)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              Risultato progetto
+            </p>
+            <p className={`text-xl font-semibold ${risultatoProgetto >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {formatCurrency(risultatoProgetto)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-[var(--text-muted)] uppercase tracking-wider mb-1">
+              Per azienda
+            </p>
+            <p className={`text-xl font-semibold ${risultatoPerAzienda >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {formatCurrency(risultatoPerAzienda)}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );
