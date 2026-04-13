@@ -22,19 +22,12 @@ export default async function ReportPage({ searchParams }: Props) {
 
   const months = getMonthOptions();
 
-  // Fetch work entries for the month
   const { data: workEntries } = await supabase
     .from('work_entries')
-    .select('*, profiles!inner(full_name, company_id), companies!inner(name)')
+    .select('*, profiles!inner(full_name), companies!inner(name)')
     .gte('date', monthStart)
-    .lt('date', monthEnd);
-
-  // Fetch expense entries for the month
-  const { data: expenseEntries } = await supabase
-    .from('expense_entries')
-    .select('*, profiles!inner(full_name, company_id), companies!inner(name)')
-    .gte('date', monthStart)
-    .lt('date', monthEnd);
+    .lt('date', monthEnd)
+    .order('date', { ascending: false });
 
   // Aggregate per person
   const personMap = new Map<
@@ -43,8 +36,8 @@ export default async function ReportPage({ searchParams }: Props) {
       name: string;
       company: string;
       hours: number;
-      hoursCost: number;
-      expenses: number;
+      hourlyRate: number;
+      cost: number;
     }
   >();
 
@@ -54,40 +47,24 @@ export default async function ReportPage({ searchParams }: Props) {
       name: entry.profiles.full_name,
       company: entry.companies.name,
       hours: 0,
-      hoursCost: 0,
-      expenses: 0,
+      hourlyRate: entry.hourly_rate,
+      cost: 0,
     };
     existing.hours += entry.hours;
-    existing.hoursCost += entry.hours * entry.hourly_rate;
+    existing.cost += entry.hours * entry.hourly_rate;
     personMap.set(key, existing);
   }
 
-  for (const entry of expenseEntries ?? []) {
-    const key = entry.user_id;
-    const existing = personMap.get(key) ?? {
-      name: entry.profiles.full_name,
-      company: entry.companies.name,
-      hours: 0,
-      hoursCost: 0,
-      expenses: 0,
-    };
-    existing.expenses += entry.amount;
-    personMap.set(key, existing);
-  }
-
-  const people = Array.from(personMap.values()).map((p) => ({
-    ...p,
-    total: p.hoursCost + p.expenses,
-  }));
+  const people = Array.from(personMap.values());
+  const totalHours = people.reduce((sum, p) => sum + p.hours, 0);
+  const totalCost = people.reduce((sum, p) => sum + p.cost, 0);
 
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Costo persone</h1>
-        <div className="flex items-center gap-4">
-          <ReportFilters months={months} currentMonth={month} />
+        <h1 className="text-2xl font-semibold text-[var(--text-primary)]">Ore lavorate</h1>
+        <ReportFilters months={months} currentMonth={month} />
           <ExportCSV data={people} month={month} />
-        </div>
       </div>
 
       <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6">
@@ -106,13 +83,10 @@ export default async function ReportPage({ searchParams }: Props) {
                     Ore
                   </th>
                   <th className="text-right text-[var(--text-muted)] uppercase tracking-wider text-xs font-medium py-3 px-2">
-                    Costo ore
+                    Tariffa oraria
                   </th>
                   <th className="text-right text-[var(--text-muted)] uppercase tracking-wider text-xs font-medium py-3 px-2">
-                    Spese
-                  </th>
-                  <th className="text-right text-[var(--text-muted)] uppercase tracking-wider text-xs font-medium py-3 px-2">
-                    Totale
+                    Costo
                   </th>
                 </tr>
               </thead>
@@ -130,13 +104,10 @@ export default async function ReportPage({ searchParams }: Props) {
                       {formatHours(person.hours)}
                     </td>
                     <td className="py-3 px-2 text-right text-[var(--text-secondary)]">
-                      {formatCurrency(person.hoursCost)}
-                    </td>
-                    <td className="py-3 px-2 text-right text-[var(--text-secondary)]">
-                      {formatCurrency(person.expenses)}
+                      {formatCurrency(person.hourlyRate)}/h
                     </td>
                     <td className="py-3 px-2 text-right text-[var(--text-primary)] font-medium">
-                      {formatCurrency(person.total)}
+                      {formatCurrency(person.cost)}
                     </td>
                   </tr>
                 ))}
@@ -147,23 +118,18 @@ export default async function ReportPage({ searchParams }: Props) {
                     Totale
                   </td>
                   <td className="py-3 px-2 text-right text-[var(--text-primary)] font-semibold">
-                    {formatHours(people.reduce((sum, p) => sum + p.hours, 0))}
+                    {formatHours(totalHours)}
                   </td>
-                  <td className="py-3 px-2 text-right text-[var(--text-primary)] font-semibold">
-                    {formatCurrency(people.reduce((sum, p) => sum + p.hoursCost, 0))}
-                  </td>
-                  <td className="py-3 px-2 text-right text-[var(--text-primary)] font-semibold">
-                    {formatCurrency(people.reduce((sum, p) => sum + p.expenses, 0))}
-                  </td>
+                  <td className="py-3 px-2" />
                   <td className="py-3 px-2 text-right text-[var(--text-primary)] font-bold">
-                    {formatCurrency(people.reduce((sum, p) => sum + p.total, 0))}
+                    {formatCurrency(totalCost)}
                   </td>
                 </tr>
               </tfoot>
             </table>
           </div>
         ) : (
-          <p className="text-[var(--text-muted)] text-sm">Nessun dato per questo periodo.</p>
+          <p className="text-[var(--text-muted)] text-sm">Nessuna ora registrata per questo periodo.</p>
         )}
       </div>
     </div>

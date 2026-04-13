@@ -5,24 +5,22 @@ interface ExportCSVProps {
     name: string;
     company: string;
     hours: number;
-    hoursCost: number;
-    expenses: number;
-    total: number;
+    hourlyRate: number;
+    cost: number;
   }[];
   month: string;
 }
 
 export default function ExportCSV({ data, month }: ExportCSVProps) {
   function handleExport() {
-    const header = 'Nome,Azienda,Ore,Costo Ore,Spese,Totale';
+    const header = 'Nome,Azienda,Ore,Tariffa Oraria,Costo';
     const rows = data.map((row) =>
       [
         `"${row.name}"`,
         `"${row.company}"`,
         row.hours.toFixed(1),
-        row.hoursCost.toFixed(2),
-        row.expenses.toFixed(2),
-        row.total.toFixed(2),
+        row.hourlyRate.toFixed(2),
+        row.cost.toFixed(2),
       ].join(',')
     );
     const csv = [header, ...rows].join('\n');
@@ -30,7 +28,7 @@ export default function ExportCSV({ data, month }: ExportCSVProps) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `report-${month}.csv`;
+    link.download = `ore-lavorate-${month}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

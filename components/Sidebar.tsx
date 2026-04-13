@@ -22,7 +22,7 @@ const navLinks = [
   { href: '/ore', label: 'Ore lavorate' },
   { href: '/spese', label: 'Spese' },
   { href: '/incassi', label: 'Incassi' },
-  { href: '/report', label: 'Report', adminOnly: true },
+  { href: '/report', label: 'Ore lavorate (report)', adminOnly: true },
   { href: '/admin/utenti', label: 'Gestione utenti', adminOnly: true },
 ];
 
