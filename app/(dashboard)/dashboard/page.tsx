@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth';
 import { formatCurrency, formatDate, formatHours } from '@/lib/utils';
 import MetricCard from '@/components/MetricCard';
 import MonthlyChart from './MonthlyChart';
+import BalanceSummary from './BalanceSummary';
 
 export default async function DashboardPage() {
   const profile = await requireAuth();
@@ -60,27 +61,40 @@ export default async function DashboardPage() {
       .filter((e) => e.status !== 'cancelled')
       .reduce((sum, e) => sum + e.amount, 0);
 
+    // Progetto condiviso: calcoli per "chi deve a chi"
+    const costiTotali = costoGuidaevai + costoReddoak;
+    const risultatoProgetto = incassiTotali - costiTotali;
+    const risultatoPerAzienda = risultatoProgetto / 2;
+    // Saldo: quanto GV deve dare a RD per equalizzare (positivo = GV→RD)
+    const saldo = (incassiTotali + costoReddoak - costoGuidaevai) / 2;
+
     // Monthly chart data
-    const monthlyMap = new Map<string, { guidaevai: number; reddoak: number }>();
+    const monthlyMap = new Map<string, { guidaevaiCosti: number; reddoakCosti: number; incassi: number }>();
     for (const e of allWork) {
       const month = e.date.slice(0, 7); // yyyy-MM
-      const entry = monthlyMap.get(month) ?? { guidaevai: 0, reddoak: 0 };
+      const entry = monthlyMap.get(month) ?? { guidaevaiCosti: 0, reddoakCosti: 0, incassi: 0 };
       const cost = e.cost ?? e.hours * e.hourly_rate;
       if (e.companies?.name?.toLowerCase() === 'guidaevai') {
-        entry.guidaevai += cost;
+        entry.guidaevaiCosti += cost;
       } else if (e.companies?.name?.toLowerCase() === 'reddoak') {
-        entry.reddoak += cost;
+        entry.reddoakCosti += cost;
       }
       monthlyMap.set(month, entry);
     }
     for (const e of allExpenses) {
       const month = e.date.slice(0, 7);
-      const entry = monthlyMap.get(month) ?? { guidaevai: 0, reddoak: 0 };
+      const entry = monthlyMap.get(month) ?? { guidaevaiCosti: 0, reddoakCosti: 0, incassi: 0 };
       if (e.companies?.name?.toLowerCase() === 'guidaevai') {
-        entry.guidaevai += e.amount;
+        entry.guidaevaiCosti += e.amount;
       } else if (e.companies?.name?.toLowerCase() === 'reddoak') {
-        entry.reddoak += e.amount;
+        entry.reddoakCosti += e.amount;
       }
+      monthlyMap.set(month, entry);
+    }
+    for (const e of allRevenue.filter((e) => e.status !== 'cancelled')) {
+      const month = e.date.slice(0, 7);
+      const entry = monthlyMap.get(month) ?? { guidaevaiCosti: 0, reddoakCosti: 0, incassi: 0 };
+      entry.incassi += e.amount;
       monthlyMap.set(month, entry);
     }
 
@@ -88,8 +102,9 @@ export default async function DashboardPage() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, values]) => ({
         month,
-        guidaevai: Math.round(values.guidaevai * 100) / 100,
-        reddoak: Math.round(values.reddoak * 100) / 100,
+        guidaevaiCosti: Math.round(values.guidaevaiCosti * 100) / 100,
+        reddoakCosti: Math.round(values.reddoakCosti * 100) / 100,
+        incassi: Math.round(values.incassi * 100) / 100,
       }));
 
     // Last 10 entries (merge work + expense + revenue, sort by created_at desc)
@@ -139,13 +154,15 @@ export default async function DashboardPage() {
       <div className="space-y-8">
         <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
 
-        <div className="grid grid-cols-5 gap-6">
-          <MetricCard title="Totale costi Guidaevai" value={formatCurrency(costoGuidaevai)} />
-          <MetricCard title="Totale costi Reddoak" value={formatCurrency(costoReddoak)} />
-          <MetricCard title="Ore totali" value={formatHours(oreTotali)} />
-          <MetricCard title="Spese totali" value={formatCurrency(speseTotali)} />
-          <MetricCard title="Incassi totali" value={formatCurrency(incassiTotali)} />
-        </div>
+        <BalanceSummary
+          costoGuidaevai={costoGuidaevai}
+          costoReddoak={costoReddoak}
+          incassiTotali={incassiTotali}
+          costiTotali={costiTotali}
+          risultatoProgetto={risultatoProgetto}
+          risultatoPerAzienda={risultatoPerAzienda}
+          saldo={saldo}
+        />
 
         <MonthlyChart data={monthlyData} />
 

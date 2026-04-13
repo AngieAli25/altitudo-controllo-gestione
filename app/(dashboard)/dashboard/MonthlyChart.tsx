@@ -11,13 +11,18 @@ import {
 } from 'recharts';
 
 interface MonthlyChartProps {
-  data: { month: string; guidaevai: number; reddoak: number }[];
+  data: {
+    month: string;
+    guidaevaiCosti: number;
+    reddoakCosti: number;
+    incassi: number;
+  }[];
 }
 
 export default function MonthlyChart({ data }: MonthlyChartProps) {
   return (
     <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6">
-      <h3 className="text-[var(--text-primary)] text-lg font-semibold mb-6">Costi mensili per azienda</h3>
+      <h3 className="text-[var(--text-primary)] text-lg font-semibold mb-6">Costi e incassi mensili</h3>
       <ResponsiveContainer width="100%" height={350}>
         <BarChart data={data}>
           <XAxis
@@ -56,15 +61,21 @@ export default function MonthlyChart({ data }: MonthlyChartProps) {
             wrapperStyle={{ color: 'var(--text-primary)', fontSize: 13 }}
           />
           <Bar
-            dataKey="guidaevai"
-            name="Guidaevai"
+            dataKey="guidaevaiCosti"
+            name="Costi Guidaevai"
             fill="rgba(255,160,50,0.85)"
             radius={[6, 6, 0, 0]}
           />
           <Bar
-            dataKey="reddoak"
-            name="Reddoak"
+            dataKey="reddoakCosti"
+            name="Costi Reddoak"
             fill="rgba(255,60,60,0.85)"
+            radius={[6, 6, 0, 0]}
+          />
+          <Bar
+            dataKey="incassi"
+            name="Incassi progetto"
+            fill="rgba(74,222,128,0.85)"
             radius={[6, 6, 0, 0]}
           />
         </BarChart>
