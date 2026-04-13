@@ -1,33 +1,65 @@
 import { createClient } from '@/lib/supabase/server';
 import { requireAuth } from '@/lib/auth';
-import { formatCurrency, formatDate, formatHours } from '@/lib/utils';
+import { formatCurrency, formatDate, formatHours, getMonthOptions } from '@/lib/utils';
+import { format } from 'date-fns';
 import MetricCard from '@/components/MetricCard';
 import MonthlyChart from './MonthlyChart';
 import BalanceSummary from './BalanceSummary';
+import DashboardFilters from './DashboardFilters';
 
-export default async function DashboardPage() {
+interface Props {
+  searchParams: Promise<{ month?: string }>;
+}
+
+export default async function DashboardPage({ searchParams }: Props) {
   const profile = await requireAuth();
   const supabase = await createClient();
   const isAdmin = profile.role === 'admin';
+  const params = await searchParams;
+  const selectedMonth = params.month || 'all';
+
+  // Date range for filtering
+  let monthStart: string | null = null;
+  let monthEnd: string | null = null;
+  if (selectedMonth !== 'all') {
+    monthStart = `${selectedMonth}-01`;
+    const [year, mon] = selectedMonth.split('-').map(Number);
+    const nextMonth = new Date(year, mon, 1);
+    monthEnd = format(nextMonth, 'yyyy-MM-dd');
+  }
+
+  const months = getMonthOptions();
 
   if (isAdmin) {
-    // Fetch all work entries
-    const { data: workEntries } = await supabase
+    // Fetch work entries
+    let workQuery = supabase
       .from('work_entries')
       .select('*, companies(name)')
       .order('created_at', { ascending: false });
+    if (monthStart && monthEnd) {
+      workQuery = workQuery.gte('date', monthStart).lt('date', monthEnd);
+    }
+    const { data: workEntries } = await workQuery;
 
-    // Fetch all expense entries
-    const { data: expenseEntries } = await supabase
+    // Fetch expense entries
+    let expenseQuery = supabase
       .from('expense_entries')
       .select('*, companies(name)')
       .order('created_at', { ascending: false });
+    if (monthStart && monthEnd) {
+      expenseQuery = expenseQuery.gte('date', monthStart).lt('date', monthEnd);
+    }
+    const { data: expenseEntries } = await expenseQuery;
 
-    // Fetch all revenue entries
-    const { data: revenueEntries } = await supabase
+    // Fetch revenue entries
+    let revenueQuery = supabase
       .from('revenue_entries')
       .select('*, companies(name)')
       .order('created_at', { ascending: false });
+    if (monthStart && monthEnd) {
+      revenueQuery = revenueQuery.gte('date', monthStart).lt('date', monthEnd);
+    }
+    const { data: revenueEntries } = await revenueQuery;
 
     const allWork = workEntries ?? [];
     const allExpenses = expenseEntries ?? [];
@@ -55,8 +87,6 @@ export default async function DashboardPage() {
       reddoakWork.reduce((sum, e) => sum + (e.cost ?? e.hours * e.hourly_rate), 0) +
       reddoakExpenses.reduce((sum, e) => sum + e.amount, 0);
 
-    const oreTotali = allWork.reduce((sum, e) => sum + e.hours, 0);
-    const speseTotali = allExpenses.reduce((sum, e) => sum + e.amount, 0);
     const incassiTotali = allRevenue
       .filter((e) => e.status !== 'cancelled')
       .reduce((sum, e) => sum + e.amount, 0);
@@ -65,13 +95,12 @@ export default async function DashboardPage() {
     const costiTotali = costoGuidaevai + costoReddoak;
     const risultatoProgetto = incassiTotali - costiTotali;
     const risultatoPerAzienda = risultatoProgetto / 2;
-    // Saldo: quanto GV deve dare a RD per equalizzare (positivo = GV→RD)
     const saldo = (incassiTotali + costoReddoak - costoGuidaevai) / 2;
 
-    // Monthly chart data
+    // Monthly chart data (only when viewing all months)
     const monthlyMap = new Map<string, { guidaevaiCosti: number; reddoakCosti: number; incassi: number }>();
     for (const e of allWork) {
-      const month = e.date.slice(0, 7); // yyyy-MM
+      const month = e.date.slice(0, 7);
       const entry = monthlyMap.get(month) ?? { guidaevaiCosti: 0, reddoakCosti: 0, incassi: 0 };
       const cost = e.cost ?? e.hours * e.hourly_rate;
       if (e.companies?.name?.toLowerCase() === 'guidaevai') {
@@ -107,7 +136,7 @@ export default async function DashboardPage() {
         incassi: Math.round(values.incassi * 100) / 100,
       }));
 
-    // Last 10 entries (merge work + expense + revenue, sort by created_at desc)
+    // Last 10 entries
     type MergedEntry = {
       id: string;
       type: 'ore' | 'spesa' | 'incasso';
@@ -152,7 +181,10 @@ export default async function DashboardPage() {
 
     return (
       <div className="space-y-8">
-        <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Dashboard</h1>
+          <DashboardFilters months={months} currentMonth={selectedMonth} />
+        </div>
 
         <BalanceSummary
           costoGuidaevai={costoGuidaevai}
@@ -164,7 +196,7 @@ export default async function DashboardPage() {
           saldo={saldo}
         />
 
-        <MonthlyChart data={monthlyData} />
+        {selectedMonth === 'all' && <MonthlyChart data={monthlyData} />}
 
         <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-6">
           <h3 className="text-[var(--text-primary)] text-lg font-semibold mb-4">Ultime registrazioni</h3>

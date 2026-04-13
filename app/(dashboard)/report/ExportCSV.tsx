@@ -7,7 +7,6 @@ interface ExportCSVProps {
     hours: number;
     hoursCost: number;
     expenses: number;
-    revenue: number;
     total: number;
   }[];
   month: string;
@@ -15,7 +14,7 @@ interface ExportCSVProps {
 
 export default function ExportCSV({ data, month }: ExportCSVProps) {
   function handleExport() {
-    const header = 'Nome,Azienda,Ore,Costo Ore,Spese,Incassi,Totale Costi';
+    const header = 'Nome,Azienda,Ore,Costo Ore,Spese,Totale';
     const rows = data.map((row) =>
       [
         `"${row.name}"`,
@@ -23,7 +22,6 @@ export default function ExportCSV({ data, month }: ExportCSVProps) {
         row.hours.toFixed(1),
         row.hoursCost.toFixed(2),
         row.expenses.toFixed(2),
-        row.revenue.toFixed(2),
         row.total.toFixed(2),
       ].join(',')
     );
